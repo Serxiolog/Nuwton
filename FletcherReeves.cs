@@ -30,7 +30,7 @@ namespace Nuwton
             };
 
 
-            return Optimize(x0, maxIter: 200);
+            return Optimize(x0);
         }
 
         public (List<double> x, List<string> log) Optimize(List<double> x0, double tol = 1e-6, int maxIter = 1000)
@@ -41,8 +41,10 @@ namespace Nuwton
             var direction = Negate(grad);
             bool converged = false;
 
-            log.Add("Iter |       x1       |       x2       |   F(x)   |  Step  |  Grad Norm ");
-            log.Add("-----------------------------------------------------------------------");
+            double prevF = F(x); // Предыдущее значение функции
+
+            log.Add("Iter |       x1       |       x2       |   F(x)   |  Step  |  Grad Norm  |   ΔF    |   Δx   ");
+            log.Add("----------------------------------------------------------------------------------------------");
 
             for (int iterations = 0; iterations < maxIter; iterations++)
             {
@@ -52,8 +54,12 @@ namespace Nuwton
 
                 var gradNew = Gradient(xNew);
                 var gradNorm = EuclideanNorm(gradNew);
+                var currentF = F(xNew);
 
-                log.Add($"{iterations} | {x[0]:F6} | {x[1]:F6} | {F(x):F4} | {step:F4} | {gradNorm:F6}");
+                double deltaF = Math.Abs(currentF - prevF);
+                double deltaX = EuclideanNorm(SubtractVectors(xNew, x));
+
+                log.Add($"{iterations} | {x[0]:F6} | {x[1]:F6} | {prevF:F4} | {step:F4} | {gradNorm:F6} | {deltaF:F4} | {deltaX:F4}");
 
                 if (gradNorm < tol)
                 {
@@ -64,6 +70,7 @@ namespace Nuwton
                 var beta = DotProduct(gradNew, gradNew) / DotProduct(grad, grad);
                 direction = AddVectors(Negate(gradNew), MultiplyVectorByScalar(direction, beta));
 
+                prevF = currentF;
                 x = xNew;
                 grad = gradNew;
             }
@@ -125,6 +132,9 @@ namespace Nuwton
         // Векторные операции
         private List<double> AddVectors(List<double> a, List<double> b) =>
             new List<double> { a[0] + b[0], a[1] + b[1] };
+
+        private List<double> SubtractVectors(List<double> a, List<double> b) =>
+            new List<double> { a[0] - b[0], a[1] - b[1] };
 
         private List<double> MultiplyVectorByScalar(List<double> v, double s) =>
             new List<double> { v[0] * s, v[1] * s };
